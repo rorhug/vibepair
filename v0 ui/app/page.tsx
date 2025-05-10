@@ -216,7 +216,7 @@ export default function Home() {
                   <div className="ribbon-price font-bold py-1 px-3">${job.price}</div>
                 </div>
                 <Button asChild className="bg-forest hover:bg-forest-light text-cream">
-                  <Link href={`/job/${job.id}`}>View Details</Link>
+                  <Link href={`/protected/offers/${job.id}`}>View Details</Link>
                 </Button>
               </CardFooter>
             </Card>
