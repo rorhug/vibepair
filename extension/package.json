@@ -15,7 +15,13 @@
     "url": "https://github.com/rorhug/vibepair.git",
     "directory": "extension"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:vibepair-sidebar",
+    "onView:vibepair-treeView",
+    "onView:vibepair-welcomeView",
+    "onCommand:vibepair.helloWorld",
+    "onCommand:extension.getGitHubUser"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -29,14 +35,34 @@
         "category": "GitHub Authentication Sample"
       }
     ],
-    "views": {
-      "tf-chat": [
+    "viewsContainers": {
+      "activitybar": [
         {
-          "id": "vibepair-sampleView",
-          "name": "Sample View"
+          "id": "vibepair-sidebar",
+          "title": "VibePair",
+          "icon": "$(account)"
         }
       ]
-    }
+    },
+    "views": {
+      "vibepair-sidebar": [
+        {
+          "id": "vibepair-treeView",
+          "name": "VibePair Tree"
+        },
+        {
+          "id": "vibepair-welcomeView",
+          "name": "Welcome"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "vibepair-treeView",
+        "contents": "$(account) Get started with VibePair by signing in.",
+        "when": "!vibepair:isAuthenticated"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -58,6 +84,8 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@octokit/rest": "^21.1.1"
+    "@octokit/rest": "^21.1.1",
+    "supabase": "^2.22.12",
+    "vsls": "^1.0.4753"
   }
 }
