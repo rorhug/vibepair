@@ -55,29 +55,6 @@ class SampleTreeDataProvider
   onDidChangeTreeData?: vscode.Event<SampleTreeItem | undefined | void>;
 }
 
-class WelcomeViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = "vibepair-welcomeView";
-  constructor(private readonly context: vscode.ExtensionContext) {}
-  resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
-    webviewView.webview.options = {
-      enableScripts: true,
-    };
-    webviewView.webview.html = this.getHtml();
-  }
-  private getHtml(): string {
-    return `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-        <h2>Welcome to VibePair!</h2>
-        <p>Get started by signing in with GitHub.</p>
-      </div>
-    `;
-  }
-}
-
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
@@ -128,21 +105,20 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // Register tree view provider with username
-  const sampleTreeDataProvider = new SampleTreeDataProvider(username);
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      "vibepair-treeView",
-      sampleTreeDataProvider
-    )
-  );
 
-  // Register welcome view provider
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      WelcomeViewProvider.viewType,
-      new WelcomeViewProvider(context)
-    )
-  );
+  function registerTreeViewProvider() {
+    const sampleTreeDataProvider = new SampleTreeDataProvider(username);
+    context.subscriptions.push(
+      vscode.window.registerTreeDataProvider(
+        "vibepair-treeView",
+        sampleTreeDataProvider
+      )
+    );
+  }
+
+  if (isAuthenticated) {
+    registerTreeViewProvider();
+  }
 
   // Listen for auth changes to update context
   vscode.authentication.onDidChangeSessions(async (e) => {
@@ -163,6 +139,9 @@ export async function activate(context: vscode.ExtensionContext) {
         "vibepair:isAuthenticated",
         authed
       );
+      if (authed) {
+        registerTreeViewProvider();
+      }
     }
   });
 
@@ -184,7 +163,57 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(disposable1, disposable2);
+  const disposableSignOut = vscode.commands.registerCommand(
+    "vibepair.signOut",
+    async () => {
+      try {
+        await vscode.authentication.getSession("github", ["user:email"], {
+          clearSessionPreference: true,
+        });
+        vscode.window.showInformationMessage("Signed out of GitHub.");
+        await vscode.commands.executeCommand(
+          "setContext",
+          "vibepair:isAuthenticated",
+          false
+        );
+      } catch (e) {
+        vscode.window.showErrorMessage("Failed to sign out of GitHub.");
+      }
+    }
+  );
+
+  // New: GitHub login command
+  const disposableLogin = vscode.commands.registerCommand(
+    "vibepair.loginToGitHub",
+    async () => {
+      try {
+        const session = await vscode.authentication.getSession(
+          "github",
+          ["user:email"],
+          { createIfNone: true }
+        );
+        if (session) {
+          vscode.window.showInformationMessage("Signed in to GitHub!");
+          await vscode.commands.executeCommand(
+            "setContext",
+            "vibepair:isAuthenticated",
+            true
+          );
+          // Optionally, refresh the tree view
+          // registerTreeViewProvider();
+        }
+      } catch (e) {
+        vscode.window.showErrorMessage("GitHub sign-in cancelled or failed.");
+      }
+    }
+  );
+
+  context.subscriptions.push(
+    disposable1,
+    disposable2,
+    disposableSignOut,
+    disposableLogin
+  );
 }
 
 // This method is called when your extension is deactivated

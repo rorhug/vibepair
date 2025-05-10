@@ -4,7 +4,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "supabase-types": "supabase gen types typescript --project-id mxwpkboxefgwnvsmhaia > src/supabase/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

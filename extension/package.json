@@ -33,6 +33,14 @@
         "command": "extension.getGitHubUser",
         "title": "TF GitHub User",
         "category": "GitHub Authentication Sample"
+      },
+      {
+        "command": "vibepair.signOut",
+        "title": "Sign Out"
+      },
+      {
+        "command": "vibepair.loginToGitHub",
+        "title": "Sign In with GitHub"
       }
     ],
     "viewsContainers": {
@@ -59,8 +67,13 @@
     "viewsWelcome": [
       {
         "view": "vibepair-treeView",
-        "contents": "$(account) Get started with VibePair by signing in.",
+        "contents": "$(account) Get started with VibePair by signing in.\n[Sign in with GitHub](command:vibepair.loginToGitHub)",
         "when": "!vibepair:isAuthenticated"
+      },
+      {
+        "view": "vibepair-treeView",
+        "contents": "$(sign-out) You are signed in.\n[Sign out](command:vibepair.signOut)",
+        "when": "vibepair:isAuthenticated"
       }
     ]
   },
@@ -70,7 +83,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "supabase-types": "supabase gen types typescript --project-id mxwpkboxefgwnvsmhaia > src/supabase/types.ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
