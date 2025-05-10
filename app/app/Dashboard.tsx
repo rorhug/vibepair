@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,69 +9,8 @@ import { Toggle } from "@/components/ui/toggle"
 import { Clock, DollarSign, AlarmClock } from "lucide-react"
 import Link from "next/link"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
-// Mock data for available jobs
-const availableJobs = [
-  {
-    id: "1",
-    title: "Fix authentication bug in React application",
-    description:
-      "There's an issue with the authentication flow in our React application. Users are sometimes logged out unexpectedly.",
-    technology: "React",
-    price: 150,
-    timeRemaining: "23 hours",
-    timeRemainingHours: 23, // Added for sorting
-    urgency: "medium", // new field for urgency level
-    color: "card-pastel-blue",
-  },
-  {
-    id: "2",
-    title: "Implement payment gateway integration",
-    description:
-      "We need to integrate Stripe payment gateway into our Node.js application to process customer payments.",
-    technology: "Node.js",
-    price: 200,
-    timeRemaining: "2 days",
-    timeRemainingHours: 48, // Added for sorting
-    urgency: "low", // new field for urgency level
-    color: "card-pastel-green",
-  },
-  {
-    id: "3",
-    title: "Optimize database queries for better performance",
-    description:
-      "Our application is experiencing slow response times due to inefficient database queries. Need help optimizing them.",
-    technology: "PostgreSQL",
-    price: 180,
-    timeRemaining: "1 day",
-    timeRemainingHours: 24, // Added for sorting
-    urgency: "medium", // new field for urgency level
-    color: "card-pastel-peach",
-  },
-  {
-    id: "4",
-    title: "Build responsive UI components",
-    description: "We need to create several responsive UI components using React and Tailwind CSS for our dashboard.",
-    technology: "React",
-    price: 120,
-    timeRemaining: "3 days",
-    timeRemainingHours: 72, // Added for sorting
-    urgency: "low", // new field for urgency level
-    color: "card-pastel-yellow",
-  },
-  {
-    id: "5",
-    title:
-      "Fix CSS layout issues on mobile devices - This is a longer title that will get truncated in the UI to demonstrate the hover effect for truncated text",
-    description: "Our web application has layout issues on mobile devices. Need help making it fully responsive.",
-    technology: "CSS",
-    price: 90,
-    timeRemaining: "12 hours",
-    timeRemainingHours: 12, // Added for sorting
-    urgency: "high", // new field for urgency level
-    color: "card-pastel-purple",
-  },
-]
+import { createBrowserClient } from "@supabase/ssr"
+import { useToast } from "@/components/ui/use-toast"
 
 // Technology options for filter
 const technologies = ["All", "React", "Node.js", "PostgreSQL", "CSS"]
@@ -90,15 +29,101 @@ const getUrgencyColor = (urgency: string) => {
   }
 }
 
-export default function Home() {
+// Helper function to get card color
+const getCardColor = (index: number) => {
+  const colors = [
+    "card-pastel-blue",
+    "card-pastel-green",
+    "card-pastel-peach",
+    "card-pastel-yellow",
+    "card-pastel-purple"
+  ]
+  return colors[index % colors.length]
+}
+
+export default function Dashboard() {
   const [selectedTechnology, setSelectedTechnology] = useState("All")
   const [priceHighToLow, setPriceHighToLow] = useState(false)
   const [timeLeastToMost, setTimeLeastToMost] = useState(false)
   const [activeSort, setActiveSort] = useState<"price" | "time">("price")
+  const [offers, setOffers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('offer')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        // Transform the data to match our UI needs
+        const transformedOffers = data.map((offer, index) => ({
+          id: offer.id,
+          title: offer.title,
+          description: offer.description,
+          technology: offer.technology,
+          price: offer.price,
+          timeRemaining: calculateTimeRemaining(offer.deadline),
+          timeRemainingHours: calculateTimeRemainingHours(offer.deadline),
+          urgency: calculateUrgency(offer.deadline),
+          color: getCardColor(index)
+        }))
+
+        setOffers(transformedOffers)
+      } catch (error) {
+        console.error('Error fetching offers:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load offers",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOffers()
+  }, [supabase, toast])
+
+  // Helper function to calculate time remaining
+  const calculateTimeRemaining = (deadline: string) => {
+    const now = new Date()
+    const deadlineDate = new Date(deadline)
+    const diffHours = Math.floor((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+    
+    if (diffHours < 24) {
+      return `${diffHours} hours`
+    } else {
+      return `${Math.floor(diffHours / 24)} days`
+    }
+  }
+
+  // Helper function to calculate time remaining in hours
+  const calculateTimeRemainingHours = (deadline: string) => {
+    const now = new Date()
+    const deadlineDate = new Date(deadline)
+    return Math.floor((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+  }
+
+  // Helper function to calculate urgency
+  const calculateUrgency = (deadline: string) => {
+    const hours = calculateTimeRemainingHours(deadline)
+    if (hours < 24) return "high"
+    if (hours < 72) return "medium"
+    return "low"
+  }
 
   // Filter and sort jobs based on selected criteria
-  const filteredJobs = availableJobs
-    .filter((job) => selectedTechnology === "All" || job.technology === selectedTechnology)
+  const filteredOffers = offers
+    .filter((offer) => selectedTechnology === "All" || offer.technology === selectedTechnology)
     .sort((a, b) => {
       if (activeSort === "price") {
         return priceHighToLow ? b.price - a.price : a.price - b.price
@@ -117,6 +142,21 @@ export default function Home() {
   const handleTimeToggle = (pressed: boolean) => {
     setTimeLeastToMost(pressed)
     setActiveSort("time")
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-8 px-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-forest/20 rounded w-1/4"></div>
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 bg-forest/10 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -172,36 +212,35 @@ export default function Home() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {filteredJobs.map((job) => (
+          {filteredOffers.map((offer) => (
             <Card
-              key={job.id}
-              className={`flex flex-col ${job.color} border border-forest/10 shadow-card transition-all duration-200 hover:shadow-card-hover group`}
+              key={offer.id}
+              className={`flex flex-col ${offer.color} border border-forest/10 shadow-card transition-all duration-200 hover:shadow-card-hover group`}
             >
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <CardTitle className="line-clamp-2 text-forest mb-3">{job.title}</CardTitle>
+                        <CardTitle className="line-clamp-2 text-forest mb-3">{offer.title}</CardTitle>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[300px]">
-                        {job.title}
+                        {offer.title}
                       </TooltipContent>
                     </Tooltip>
                     <CardDescription className="mt-3">
                       <Badge variant="outline" className="bg-cream/50 text-forest border-forest/20">
-                        {job.technology}
+                        {offer.technology}
                       </Badge>
                     </CardDescription>
                   </div>
 
-                  {/* Improved inline time remaining badge */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`inline-time-badge ${getUrgencyColor(job.urgency)}`}>
+                      <div className={`inline-time-badge ${getUrgencyColor(offer.urgency)}`}>
                         <span className="time-label"></span>
                         <Clock className="time-icon" />
-                        <span className="time-value">{job.timeRemaining}</span>
+                        <span className="time-value">{offer.timeRemaining}</span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top">Time remaining to bid on this job</TooltipContent>
@@ -209,14 +248,14 @@ export default function Home() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow pb-6">
-                <p className="text-sm text-forest/80 line-clamp-3">{job.description}</p>
+                <p className="text-sm text-forest/80 line-clamp-3">{offer.description}</p>
               </CardContent>
               <CardFooter className="flex justify-between items-center pt-5 pb-5 border-t border-forest/10">
                 <div className="relative">
-                  <div className="ribbon-price font-bold py-1 px-3">${job.price}</div>
+                  <div className="ribbon-price font-bold py-1 px-3">${offer.price}</div>
                 </div>
                 <Button asChild className="bg-forest hover:bg-forest-light text-cream">
-                  <Link href={`/job/${job.id}`}>View Details</Link>
+                  <Link href={`/protected/offers/${offer.id}`}>View Details</Link>
                 </Button>
               </CardFooter>
             </Card>
