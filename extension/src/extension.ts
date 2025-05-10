@@ -454,17 +454,26 @@ export async function activate(context: vscode.ExtensionContext) {
         );
         return;
       }
-      const session = await liveshare.share();
-      if (!session || !liveshare.session || !liveshare.session.id) {
-        vscode.window.showErrorMessage("Failed to start Live Share session.");
+      const session = await liveshare.share({ isPersistent: true });
+      if (!session) {
+        // vscode.window.showErrorMessage("Failed to start Live Share session.");
         return;
       }
+
+      // liveshare.onDidChangeSession((e) => {
+      //   vscode.window.showInformationMessage(e.session.toString());
+      // });
+
       // Compose the Live Share link
-      const liveshareLink = `https://prod.liveshare.vsengsaas.visualstudio.com/join?${liveshare.session.id}`;
+      // const liveshareLink = `https://prod.liveshare.vsengsaas.visualstudio.com/join?${}`;
+      const liveshareLink = session;
+
       // Update offer with liveshare_link
+
+      console.log("offerid", item.offerId);
       const { error: linkError } = await supabase
         .from("offer")
-        .update({ liveshare_link: liveshareLink })
+        .update({ liveshare_link: liveshareLink.toString() })
         .eq("id", item.offerId);
       if (linkError) {
         vscode.window.showErrorMessage(

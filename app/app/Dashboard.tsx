@@ -1,33 +1,51 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Toggle } from "@/components/ui/toggle"
-import { Clock, DollarSign, AlarmClock } from "lucide-react"
-import Link from "next/link"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { createBrowserClient } from "@supabase/ssr"
-import { useToast } from "@/components/ui/use-toast"
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
+import { Clock, DollarSign, AlarmClock } from "lucide-react";
+import Link from "next/link";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { createBrowserClient } from "@supabase/ssr";
+import { useToast } from "@/components/ui/use-toast";
 
 // Technology options for filter
-const technologies = ["All", "React", "Node.js", "PostgreSQL", "CSS"]
+const technologies = ["All", "React", "Node.js", "PostgreSQL", "CSS"];
 
 // Helper function to get urgency color
 const getUrgencyColor = (urgency: string) => {
   switch (urgency) {
     case "high":
-      return "text-red-600"
+      return "text-red-600";
     case "medium":
-      return "text-amber-600"
+      return "text-amber-600";
     case "low":
-      return "text-green-600"
+      return "text-green-600";
     default:
-      return "text-forest/70"
+      return "text-forest/70";
   }
-}
+};
 
 // Helper function to get card color
 const getCardColor = (index: number) => {
@@ -36,33 +54,33 @@ const getCardColor = (index: number) => {
     "card-pastel-green",
     "card-pastel-peach",
     "card-pastel-yellow",
-    "card-pastel-purple"
-  ]
-  return colors[index % colors.length]
-}
+    "card-pastel-purple",
+  ];
+  return colors[index % colors.length];
+};
 
 export default function Dashboard() {
-  const [selectedTechnology, setSelectedTechnology] = useState("All")
-  const [priceHighToLow, setPriceHighToLow] = useState(false)
-  const [timeLeastToMost, setTimeLeastToMost] = useState(false)
-  const [activeSort, setActiveSort] = useState<"price" | "time">("price")
-  const [offers, setOffers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [selectedTechnology, setSelectedTechnology] = useState("All");
+  const [priceHighToLow, setPriceHighToLow] = useState(false);
+  const [timeLeastToMost, setTimeLeastToMost] = useState(false);
+  const [activeSort, setActiveSort] = useState<"price" | "time">("price");
+  const [offers, setOffers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  const { toast } = useToast()
+  );
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchOffers = async () => {
       try {
         const { data, error } = await supabase
-          .from('offer')
-          .select('*')
-          .order('created_at', { ascending: false })
+          .from("offer")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-        if (error) throw error
+        if (error) throw error;
 
         // Transform the data to match our UI needs
         const transformedOffers = data.map((offer, index) => ({
@@ -71,78 +89,85 @@ export default function Dashboard() {
           description: offer.description,
           technology: offer.technology,
           price: offer.price,
-          timeRemaining: calculateTimeRemaining(offer.deadline),
+          timeRemaining: calculateTimeRemaining(offer.expires_at),
           timeRemainingHours: calculateTimeRemainingHours(offer.deadline),
           urgency: calculateUrgency(offer.deadline),
-          color: getCardColor(index)
-        }))
+          color: getCardColor(index),
+        }));
 
-        setOffers(transformedOffers)
+        setOffers(transformedOffers);
       } catch (error) {
-        console.error('Error fetching offers:', error)
+        console.error("Error fetching offers:", error);
         toast({
           title: "Error",
           description: "Failed to load offers",
-          variant: "destructive"
-        })
+          variant: "destructive",
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchOffers()
-  }, [supabase, toast])
+    fetchOffers();
+  }, [supabase, toast]);
 
   // Helper function to calculate time remaining
   const calculateTimeRemaining = (deadline: string) => {
-    const now = new Date()
-    const deadlineDate = new Date(deadline)
-    const diffHours = Math.floor((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60))
-    
-    if (diffHours < 24) {
-      return `${diffHours} hours`
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffmins = Math.floor(
+      (deadlineDate.getTime() - now.getTime()) / (1000 * 60)
+    );
+
+    if (diffmins <= 0) {
+      return "Expired";
     } else {
-      return `${Math.floor(diffHours / 24)} days`
+      return `${diffmins} minutes`;
     }
-  }
+  };
 
   // Helper function to calculate time remaining in hours
   const calculateTimeRemainingHours = (deadline: string) => {
-    const now = new Date()
-    const deadlineDate = new Date(deadline)
-    return Math.floor((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60))
-  }
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    return Math.floor(
+      (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+    );
+  };
 
   // Helper function to calculate urgency
   const calculateUrgency = (deadline: string) => {
-    const hours = calculateTimeRemainingHours(deadline)
-    if (hours < 24) return "high"
-    if (hours < 72) return "medium"
-    return "low"
-  }
+    const hours = calculateTimeRemainingHours(deadline);
+    if (hours < 24) return "high";
+    if (hours < 72) return "medium";
+    return "low";
+  };
 
   // Filter and sort jobs based on selected criteria
   const filteredOffers = offers
-    .filter((offer) => selectedTechnology === "All" || offer.technology === selectedTechnology)
+    .filter(
+      (offer) =>
+        selectedTechnology === "All" || offer.technology === selectedTechnology
+    )
     .sort((a, b) => {
       if (activeSort === "price") {
-        return priceHighToLow ? b.price - a.price : a.price - b.price
+        return priceHighToLow ? b.price - a.price : a.price - b.price;
       } else {
         return timeLeastToMost
           ? a.timeRemainingHours - b.timeRemainingHours
-          : b.timeRemainingHours - a.timeRemainingHours
+          : b.timeRemainingHours - a.timeRemainingHours;
       }
-    })
+    });
 
   const handlePriceToggle = (pressed: boolean) => {
-    setPriceHighToLow(pressed)
-    setActiveSort("price")
-  }
+    setPriceHighToLow(pressed);
+    setActiveSort("price");
+  };
 
   const handleTimeToggle = (pressed: boolean) => {
-    setTimeLeastToMost(pressed)
-    setActiveSort("time")
-  }
+    setTimeLeastToMost(pressed);
+    setActiveSort("time");
+  };
 
   if (loading) {
     return (
@@ -156,17 +181,22 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <TooltipProvider>
       <div className="container py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-6 text-forest">Available Jobs</h1>
+          <h1 className="text-2xl font-bold mb-6 text-forest">
+            Available Jobs
+          </h1>
           <div className="flex flex-wrap gap-4">
             <div className="w-full sm:w-auto mb-2 sm:mb-0">
-              <Select value={selectedTechnology} onValueChange={setSelectedTechnology}>
+              <Select
+                value={selectedTechnology}
+                onValueChange={setSelectedTechnology}
+              >
                 <SelectTrigger className="w-full sm:w-[200px] bg-pastel-blue/30 border-pastel-blue/50 text-forest">
                   <SelectValue placeholder="Technology" />
                 </SelectTrigger>
@@ -205,7 +235,9 @@ export default function Dashboard() {
                 } text-forest`}
               >
                 <AlarmClock className="h-4 w-4" />
-                {timeLeastToMost ? "Time: Least to Most" : "Time: Most to Least"}
+                {timeLeastToMost
+                  ? "Time: Least to Most"
+                  : "Time: Most to Least"}
               </Toggle>
             </div>
           </div>
@@ -222,14 +254,19 @@ export default function Dashboard() {
                   <div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <CardTitle className="line-clamp-2 text-forest mb-3">{offer.title}</CardTitle>
+                        <CardTitle className="line-clamp-2 text-forest mb-3">
+                          {offer.title}
+                        </CardTitle>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[300px]">
                         {offer.title}
                       </TooltipContent>
                     </Tooltip>
                     <CardDescription className="mt-3">
-                      <Badge variant="outline" className="bg-cream/50 text-forest border-forest/20">
+                      <Badge
+                        variant="outline"
+                        className="bg-cream/50 text-forest border-forest/20"
+                      >
                         {offer.technology}
                       </Badge>
                     </CardDescription>
@@ -237,25 +274,40 @@ export default function Dashboard() {
 
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`inline-time-badge ${getUrgencyColor(offer.urgency)}`}>
+                      <div
+                        className={`inline-time-badge ${getUrgencyColor(offer.urgency)}`}
+                      >
                         <span className="time-label"></span>
                         <Clock className="time-icon" />
-                        <span className="time-value">{offer.timeRemaining}</span>
+                        <span className="time-value">
+                          {offer.timeRemaining}
+                        </span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top">Time remaining to bid on this job</TooltipContent>
+                    <TooltipContent side="top">
+                      Time remaining to bid on this job
+                    </TooltipContent>
                   </Tooltip>
                 </div>
               </CardHeader>
               <CardContent className="flex-grow pb-6">
-                <p className="text-sm text-forest/80 line-clamp-3">{offer.description}</p>
+                <p className="text-sm text-forest/80 line-clamp-3">
+                  {offer.description}
+                </p>
               </CardContent>
               <CardFooter className="flex justify-between items-center pt-5 pb-5 border-t border-forest/10">
                 <div className="relative">
-                  <div className="ribbon-price font-bold py-1 px-3">${offer.price}</div>
+                  <div className="ribbon-price font-bold py-1 px-3">
+                    ${offer.price}
+                  </div>
                 </div>
-                <Button asChild className="bg-forest hover:bg-forest-light text-cream">
-                  <Link href={`/protected/offers/${offer.id}`}>View Details</Link>
+                <Button
+                  asChild
+                  className="bg-forest hover:bg-forest-light text-cream"
+                >
+                  <Link href={`/protected/offers/${offer.id}`}>
+                    View Details
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -263,5 +315,5 @@ export default function Dashboard() {
         </div>
       </div>
     </TooltipProvider>
-  )
+  );
 }
