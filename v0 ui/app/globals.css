@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 43 38% 95%;
+    --foreground: 156 55% 15%;
+
+    --card: 43 38% 97%;
+    --card-foreground: 156 55% 15%;
+
+    --popover: 43 38% 97%;
+    --popover-foreground: 156 55% 15%;
+
+    --primary: 156 55% 15%;
+    --primary-foreground: 43 38% 97%;
+
+    --secondary: 30 67% 94%;
+    --secondary-foreground: 156 55% 15%;
+
+    --muted: 43 38% 92%;
+    --muted-foreground: 156 30% 35%;
+
+    --accent: 210 40% 88%;
+    --accent-foreground: 156 55% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 43 38% 97%;
+
+    --border: 43 38% 85%;
+    --input: 43 38% 85%;
+    --ring: 156 55% 15%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 156 55% 10%;
+    --foreground: 43 38% 95%;
+
+    --card: 156 55% 12%;
+    --card-foreground: 43 38% 95%;
+
+    --popover: 156 55% 12%;
+    --popover-foreground: 43 38% 95%;
+
+    --primary: 43 38% 90%;
+    --primary-foreground: 156 55% 15%;
+
+    --secondary: 156 40% 20%;
+    --secondary-foreground: 43 38% 95%;
+
+    --muted: 156 40% 20%;
+    --muted-foreground: 43 38% 70%;
+
+    --accent: 156 40% 20%;
+    --accent-foreground: 43 38% 95%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 43 38% 95%;
+
+    --border: 156 40% 25%;
+    --input: 156 40% 25%;
+    --ring: 43 38% 80%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-cream text-forest;
+  }
+}
+
+/* Custom styles for our pastel theme */
+.card-pastel-blue {
+  @apply bg-pastel-blue/30 hover:bg-pastel-blue/50 transition-colors;
+}
+
+.card-pastel-green {
+  @apply bg-pastel-green/30 hover:bg-pastel-green/50 transition-colors;
+}
+
+.card-pastel-peach {
+  @apply bg-pastel-peach/30 hover:bg-pastel-peach/50 transition-colors;
+}
+
+.card-pastel-yellow {
+  @apply bg-pastel-yellow/30 hover:bg-pastel-yellow/50 transition-colors;
+}
+
+.card-pastel-purple {
+  @apply bg-pastel-purple/30 hover:bg-pastel-purple/50 transition-colors;
+}
+
+/* Custom card shadows */
+.shadow-card {
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-card-hover {
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Ribbon price style */
+.ribbon-price {
+  position: relative;
+  display: inline-block;
+  background-color: #3bb0f6; /* Using a nice blue color */
+  color: #ffffff; /* White text for contrast */
+  font-weight: bold;
+  padding: 0.5rem 1.5rem 0.5rem 1rem;
+  clip-path: polygon(0 0, 100% 0, 85% 50%, 100% 100%, 0 100%);
+  transition: transform 0.2s ease;
+}
+
+.ribbon-price:hover {
+  transform: scale(1.05);
+}
+
+/* Improved inline time badge */
+.inline-time-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(15, 60, 48, 0.1);
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.inline-time-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.inline-time-badge .time-label {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.inline-time-badge .time-icon {
+  height: 14px;
+  width: 14px;
+}
+
+.inline-time-badge .time-value {
+  font-weight: 600;
+}
