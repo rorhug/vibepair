@@ -1,0 +1,6 @@
+- [ ] gh sign in
+- [ ] figure out can we launch a live share from this extension
+- [ ] allow buyers to create a project, with a price and a description
+- [ ] allow sellers to bid on projects
+- [ ] allow users to accept a bid
+- [ ] allow users to chat
