@@ -7,6 +7,7 @@ const config = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "*.{js,ts,jsx,tsx,mdx}",
   ],
   prefix: "",
   theme: {
@@ -52,6 +53,22 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Custom colors for our pastel theme
+        cream: "#f8f3e9",
+        forest: {
+          DEFAULT: "#0f3c30",
+          light: "#1a5a48",
+        },
+        pastel: {
+          blue: "#d1e3f0",
+          green: "#d1e8d9",
+          peach: "#f8e2d8",
+          yellow: "#f9f0d3",
+          purple: "#e6d9f2",
+        },
+        ribbon: {
+          blue: "#3b82f6",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -71,6 +88,10 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      boxShadow: {
+        card: "1px 1px 3px rgba(0, 0, 0, 0.1)",
+        "card-hover": "3px 3px 6px rgba(0, 0, 0, 0.15)",
       },
     },
   },
