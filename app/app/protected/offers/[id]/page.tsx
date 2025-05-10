@@ -27,7 +27,8 @@ interface BidForm {
   price: number
   proposal: string
   self_penalty: number | null
-}
+} 
+
 
 export default function OfferDetails() {
   const params = useParams()
