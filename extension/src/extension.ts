@@ -8,13 +8,29 @@ import { execSync } from "child_process";
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "./supabase/types";
 import supabase from "./supabase/client";
+import * as vsls from "vsls";
 
 class SampleTreeItem extends vscode.TreeItem {
+  id?: string;
+  offerId?: string;
+  bidId?: string;
+  isBid?: boolean;
   constructor(
     label: string,
-    collapsibleState?: vscode.TreeItemCollapsibleState
+    collapsibleState?: vscode.TreeItemCollapsibleState,
+    id?: string,
+    offerId?: string,
+    bidId?: string,
+    isBid?: boolean
   ) {
     super(label, collapsibleState);
+    this.id = id;
+    this.offerId = offerId;
+    this.bidId = bidId;
+    this.isBid = isBid;
+    if (isBid && bidId && offerId) {
+      this.contextValue = "bidItem";
+    }
   }
 }
 
@@ -23,6 +39,12 @@ class SampleTreeDataProvider
 {
   private username: string | undefined;
   private isAuthenticated: boolean = false;
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    SampleTreeItem | undefined | void
+  > = new vscode.EventEmitter<SampleTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<
+    SampleTreeItem | undefined | void
+  > = this._onDidChangeTreeData.event;
 
   constructor(username?: string) {
     if (username) {
@@ -31,34 +53,86 @@ class SampleTreeDataProvider
     }
   }
 
+  refresh(element?: SampleTreeItem): void {
+    this._onDidChangeTreeData.fire(element);
+  }
+
   getTreeItem(element: SampleTreeItem): vscode.TreeItem {
     return element;
   }
 
-  getChildren(element?: SampleTreeItem): Thenable<SampleTreeItem[]> {
+  async getChildren(element?: SampleTreeItem): Promise<SampleTreeItem[]> {
     if (!element) {
-      // Root items
-      const items: SampleTreeItem[] = [];
-      if (this.isAuthenticated && this.username) {
-        items.push(new SampleTreeItem(`Signed in as ${this.username}`));
+      // Fetch all offers from Supabase
+      try {
+        const { data, error } = await supabase
+          .from("offer")
+          .select("id, description, username, price, accepted_bid");
+        if (error) {
+          vscode.window.showErrorMessage(
+            `Failed to fetch offers: ${error.message}`
+          );
+          return [];
+        }
+        if (!data) return [];
+        return data.map(
+          (offer: {
+            id: string;
+            description: string;
+            username: string;
+            price: number;
+            accepted_bid: string | null;
+          }) => {
+            const item = new SampleTreeItem(
+              offer.description,
+              vscode.TreeItemCollapsibleState.Collapsed,
+              offer.id
+            );
+            item.description = `${offer.username} - $${offer.price}`;
+            return item;
+          }
+        );
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Error fetching offers: ${e.message}`);
+        return [];
       }
-      items.push(
-        new SampleTreeItem("Item 1"),
-        new SampleTreeItem("Item 2", vscode.TreeItemCollapsibleState.Collapsed),
-        new SampleTreeItem("Item 3")
-      );
-      return Promise.resolve(items);
-    } else if (element.label === "Item 2") {
-      // Children of Item 2
-      return Promise.resolve([
-        new SampleTreeItem("Subitem 2.1"),
-        new SampleTreeItem("Subitem 2.2"),
-      ]);
+    } else if (element.id) {
+      // Fetch bids for the offer
+      try {
+        const { data, error } = await supabase
+          .from("bids")
+          .select("id, username, price")
+          .eq("offer_id", element.id);
+        if (error) {
+          vscode.window.showErrorMessage(
+            `Failed to fetch bids: ${error.message}`
+          );
+          return [];
+        }
+        if (!data || data.length === 0) {
+          return [new SampleTreeItem("No bids yet")];
+        }
+        return data.map(
+          (bid: { id: string; username: string; price: number }) => {
+            const item = new SampleTreeItem(
+              `${bid.username} - $${bid.price}`,
+              vscode.TreeItemCollapsibleState.None,
+              undefined,
+              element.id,
+              bid.id,
+              true
+            );
+            item.description = undefined;
+            return item;
+          }
+        );
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Error fetching bids: ${e.message}`);
+        return [];
+      }
     }
-    return Promise.resolve([]);
+    return [];
   }
-
-  onDidChangeTreeData?: vscode.Event<SampleTreeItem | undefined | void>;
 }
 
 // This method is called when your extension is activated
@@ -111,13 +185,13 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // Register tree view provider with username
-
+  let treeDataProvider: SampleTreeDataProvider | undefined;
   function registerTreeViewProvider() {
-    const sampleTreeDataProvider = new SampleTreeDataProvider(username);
+    treeDataProvider = new SampleTreeDataProvider(username);
     context.subscriptions.push(
       vscode.window.registerTreeDataProvider(
         "vibepair-treeView",
-        sampleTreeDataProvider
+        treeDataProvider
       )
     );
   }
@@ -352,6 +426,73 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(disposableCreateOffer);
+
+  // Register Accept Bid command
+  const disposableAcceptBid = vscode.commands.registerCommand(
+    "vibepair.acceptBid",
+    async (item: SampleTreeItem) => {
+      if (!item || !item.isBid || !item.offerId || !item.bidId) {
+        vscode.window.showErrorMessage("Invalid bid selection.");
+        return;
+      }
+      // Set accepted_bid on offer
+      const { error: updateError } = await supabase
+        .from("offer")
+        .update({ accepted_bid: item.bidId })
+        .eq("id", item.offerId);
+      if (updateError) {
+        vscode.window.showErrorMessage(
+          `Failed to accept bid: ${updateError.message}`
+        );
+        return;
+      }
+      // Start Live Share session
+      const liveshare = await vsls.getApi();
+      if (!liveshare) {
+        vscode.window.showErrorMessage(
+          "VS Live Share extension is not available."
+        );
+        return;
+      }
+      const session = await liveshare.share();
+      if (!session || !liveshare.session || !liveshare.session.id) {
+        vscode.window.showErrorMessage("Failed to start Live Share session.");
+        return;
+      }
+      // Compose the Live Share link
+      const liveshareLink = `https://prod.liveshare.vsengsaas.visualstudio.com/join?${liveshare.session.id}`;
+      // Update offer with liveshare_link
+      const { error: linkError } = await supabase
+        .from("offer")
+        .update({ liveshare_link: liveshareLink })
+        .eq("id", item.offerId);
+      if (linkError) {
+        vscode.window.showErrorMessage(
+          `Failed to update offer with Live Share link: ${linkError.message}`
+        );
+        return;
+      }
+      vscode.window.showInformationMessage(
+        `Bid accepted! Live Share started: ${liveshareLink}`
+      );
+    }
+  );
+  context.subscriptions.push(disposableAcceptBid);
+
+  // Refresh bids when an offer is expanded
+  vscode.window
+    .createTreeView("vibepair-treeView", {
+      treeDataProvider: treeDataProvider!,
+    })
+    .onDidExpandElement((e) => {
+      if (
+        treeDataProvider &&
+        e.element instanceof SampleTreeItem &&
+        e.element.id
+      ) {
+        treeDataProvider.refresh(e.element);
+      }
+    });
 }
 
 // This method is called when your extension is deactivated

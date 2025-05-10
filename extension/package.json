@@ -45,6 +45,10 @@
       {
         "command": "vibepair.createOffer",
         "title": "Create Offer"
+      },
+      {
+        "command": "vibepair.acceptBid",
+        "title": "Accept Bid"
       }
     ],
     "viewsContainers": {
@@ -60,7 +64,7 @@
       "vibepair-sidebar": [
         {
           "id": "vibepair-treeView",
-          "name": "VibePair Tree",
+          "name": "VibePair Offers",
           "viewActions": [
             {
               "command": "vibepair.createOffer",
@@ -85,7 +89,16 @@
         "contents": "$(sign-out) You are signed in.\n[Sign out](command:vibepair.signOut)",
         "when": "vibepair:isAuthenticated"
       }
-    ]
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "vibepair.acceptBid",
+          "when": "view == vibepair-treeView && viewItem == bidItem",
+          "group": "inline"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
