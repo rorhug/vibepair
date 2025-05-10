@@ -41,6 +41,10 @@
       {
         "command": "vibepair.loginToGitHub",
         "title": "Sign In with GitHub"
+      },
+      {
+        "command": "vibepair.createOffer",
+        "title": "Create Offer"
       }
     ],
     "viewsContainers": {
@@ -56,7 +60,13 @@
       "vibepair-sidebar": [
         {
           "id": "vibepair-treeView",
-          "name": "VibePair Tree"
+          "name": "VibePair Tree",
+          "viewActions": [
+            {
+              "command": "vibepair.createOffer",
+              "title": "Create Offer"
+            }
+          ]
         },
         {
           "id": "vibepair-welcomeView",
@@ -100,6 +110,19 @@
   "dependencies": {
     "@octokit/rest": "^21.1.1",
     "supabase": "^2.22.12",
-    "vsls": "^1.0.4753"
+    "vsls": "^1.0.4753",
+    "@supabase/supabase-js": "^2.39.7"
+  },
+  "properties": {
+    "vibepair.supabaseUrl": {
+      "type": "string",
+      "default": "https://mxwpkboxefgwnvsmhaia.supabase.co",
+      "description": "Supabase project URL"
+    },
+    "vibepair.supabaseAnonKey": {
+      "type": "string",
+      "default": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14d3BrYm94ZWZnd252c21oYWlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4NzQ2MDEsImV4cCI6MjA2MjQ1MDYwMX0.bmNAaR6Q2EjCkc5wKdu-eqZK06Bnds1yapvsLZhAtWM",
+      "description": "Supabase anon public key"
+    }
   }
 }

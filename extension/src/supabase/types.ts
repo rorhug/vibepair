@@ -19,6 +19,7 @@ export type Database = {
           proposal: string
           self_penalty: number | null
           user_id: string
+          username: string
         }
         Insert: {
           created_at?: string
@@ -29,6 +30,7 @@ export type Database = {
           proposal: string
           self_penalty?: number | null
           user_id: string
+          username: string
         }
         Update: {
           created_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           proposal?: string
           self_penalty?: number | null
           user_id?: string
+          username?: string
         }
         Relationships: [
           {
@@ -70,6 +73,7 @@ export type Database = {
           price: number
           repo: string
           user_id: string
+          username: string
         }
         Insert: {
           accepted_bid?: string | null
@@ -83,6 +87,7 @@ export type Database = {
           price: number
           repo: string
           user_id: string
+          username: string
         }
         Update: {
           accepted_bid?: string | null
@@ -96,6 +101,7 @@ export type Database = {
           price?: number
           repo?: string
           user_id?: string
+          username?: string
         }
         Relationships: [
           {

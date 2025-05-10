@@ -2,6 +2,12 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { Credentials } from "./creds";
+import * as path from "path";
+import * as fs from "fs";
+import { execSync } from "child_process";
+import { createClient } from "@supabase/supabase-js";
+import { Database } from "./supabase/types";
+import supabase from "./supabase/client";
 
 class SampleTreeItem extends vscode.TreeItem {
   constructor(
@@ -214,6 +220,138 @@ export async function activate(context: vscode.ExtensionContext) {
     disposableSignOut,
     disposableLogin
   );
+
+  // --- Create Offer Command ---
+  const disposableCreateOffer = vscode.commands.registerCommand(
+    "vibepair.createOffer",
+    async () => {
+      if (!username) {
+        vscode.window.showErrorMessage(
+          "You must be logged in to create an offer."
+        );
+        return;
+      }
+      // const { data: user } = await supabase.auth.signInWithIdToken({
+
+      // });
+
+      // Step 1: Problem Description
+      const description = await vscode.window.showInputBox({
+        title: "Describe your problem",
+        prompt: "What do you need help with?",
+        placeHolder: "e.g. Fix the bug in src/app/filename.tsx",
+      });
+      if (!description) return;
+
+      // Step 2: Expires At (minutes)
+      const expiresOptions = [
+        { label: "5 minutes", value: 5 },
+        { label: "15 minutes", value: 15 },
+        { label: "30 minutes", value: 30 },
+        { label: "60 minutes", value: 60 },
+      ];
+      const expiresPick = await vscode.window.showQuickPick(
+        expiresOptions.map((o) => o.label),
+        {
+          title: "How long are you willing to wait?",
+          placeHolder: "Select time in minutes",
+        }
+      );
+      if (!expiresPick) return;
+      const expires_at =
+        expiresOptions.find((o) => o.label === expiresPick)?.value || 15;
+
+      // Step 3: Price
+      const priceInput = await vscode.window.showInputBox({
+        title: "How much would you pay?",
+        prompt: "Enter a dollar amount",
+        placeHolder: "e.g. 10",
+      });
+      if (!priceInput) return;
+      const price = parseFloat(priceInput);
+      if (isNaN(price)) {
+        vscode.window.showErrorMessage("Invalid price entered.");
+        return;
+      }
+
+      // --- Gather repo, branch, file, terminal ---
+      // Repo: try git remote, fallback to folder name
+      let repo = path.basename(
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ""
+      );
+      try {
+        const gitRemote = execSync("git remote get-url origin", {
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+          encoding: "utf8",
+        }).trim();
+        repo = gitRemote;
+      } catch {}
+      // Branch
+      let branch = "main";
+      try {
+        branch = execSync("git rev-parse --abbrev-ref HEAD", {
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+          encoding: "utf8",
+        }).trim();
+      } catch {}
+      // Current file
+      const activeEditor = vscode.window.activeTextEditor;
+      let files: { name: string; content: string }[] = [];
+      if (activeEditor) {
+        const filePath = vscode.workspace.asRelativePath(
+          activeEditor.document.uri
+        );
+        const content = activeEditor.document.getText();
+        files.push({ name: filePath, content });
+      }
+      // Terminal output (last 100 lines)
+      let terminalContent = "";
+      try {
+        // Try to get from integrated terminal (not directly possible), fallback to shell history
+        // This is a workaround: try reading from a known shell history file or skip
+        // For demo, just leave blank or add a placeholder
+        terminalContent =
+          "(last 100 lines of terminal output not available via API)";
+      } catch {}
+      files.push({ name: "terminal", content: terminalContent });
+
+      // --- Supabase Insert ---
+
+      // const supabaseUrl =
+      //   process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      //   vscode.workspace.getConfiguration().get<string>("vibepair.supabaseUrl");
+      // const supabaseKey =
+      //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      //   vscode.workspace
+      //     .getConfiguration()
+      //     .get<string>("vibepair.supabaseAnonKey");
+      // if (!supabaseUrl || !supabaseKey) {
+      //   vscode.window.showErrorMessage("Supabase credentials not set.");
+      //   return;
+      // }
+      // const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+      // const user_id = username || "unknown";
+      const offer: Database["public"]["Tables"]["offer"]["Insert"] = {
+        username,
+        description,
+        expires_at: new Date(Date.now() + expires_at * 60000).toISOString(),
+        price,
+        repo,
+        branch,
+        files,
+        user_id: "00000000-0000-0000-0000-000000000000",
+      };
+      const { error } = await supabase.from("offer").insert([offer]);
+      if (error) {
+        vscode.window.showErrorMessage(
+          `Failed to create offer: ${error.message}`
+        );
+      } else {
+        vscode.window.showInformationMessage("Offer created!");
+      }
+    }
+  );
+  context.subscriptions.push(disposableCreateOffer);
 }
 
 // This method is called when your extension is deactivated
